@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <algorithm>
 template <typename T>
 class MyVector
@@ -236,26 +236,47 @@ public:
 		data[size - 1].~T();
 		size--;
 	}
-void DeletePeriod(int index, int index2)
-{
-    int count = index2 - index;
-
-    for (int i = index; i < index2; i++)
-        data[i].~T();
-
-    for (int i = index2; i < size; i++)
-    {
-        new(data + i - count) T(std::move(data[i]));
-        data[i].~T();
-    }
-
-    size -= count;
-}
+	void DeletePeriod(int index, int index2)
+	{
+		//cколько єлементов удалить
+		int count = index2 - index;
+		//cдвиг влево
+		for (int i = index2; i < size; ++i)
+		{
+			new(data + i - count) T(std::move(data[i]));
+			data[i].~T();
+		}
+		for (int i = size - count; i < size; ++i)
+		{
+			data[i].~T();
+		}
+		size -= count;
+	}
 	void Swap(int index, int index2)
 	{
 		std::swap(data[index], data[index2]);
 	}
+	void DeletePeriodB(int index, int index2)
+	{
+		if (index >= index2 || index < 0 || index2 > size)
+			return;
 
+		int count = index2 - index;
+
+		for (int i = 0; i < count; ++i)
+		{
+			int from = size - 1 - i;   // берём с конца
+			int to = index + i;        // вставляем в диапазон
+
+			if (to >= from) break;     // защита от пересечения
+
+			data[to].~T();
+			new (data + to) T(std::move(data[from]));
+			data[from].~T();
+		}
+
+		size -= count;
+	}
 	void insert(size_t index, const T& value)
 	{
 		if (index > size) return;
