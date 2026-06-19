@@ -255,26 +255,7 @@ void DeletePeriod(int index, int index2)
 	{
 		std::swap(data[index], data[index2]);
 	}
-void DeletePeriod(int l, int r)
-{
-    if (l < 0 || r > size || l >= r)
-        return;
 
-    int shift = r - l;
-
-    
-    for (int i = l; i < r; i++)
-        data[i].~T();
-
-    
-    for (int i = r; i < size; i++)
-    {
-        new(data + i - shift) T(std::move(data[i]));
-        data[i].~T();
-    }
-
-    size -= shift;
-}
 	void insert(size_t index, const T& value)
 	{
 		if (index > size) return;
