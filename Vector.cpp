@@ -236,20 +236,25 @@ public:
 		data[size - 1].~T();
 		size--;
 	}
-	void DeletePeriod(int index, int index2)
+	void DeletePeriodB(int index, int index2)
 	{
-		//cколько єлементов удалить
+		if (index >= index2 || index < 0 || index2 > size)
+			return;
+
 		int count = index2 - index;
-		//cдвиг влево
-		for (int i = index2; i < size; ++i)
+
+		for (int i = 0; i < count; ++i)
 		{
-			new(data + i - count) T(std::move(data[i]));
-			data[i].~T();
+			int from = size - 1 - i;   // берём с конца
+			int to = index + i;        // вставляем в диапазон
+
+			if (to >= from) break;     // защита от пересечения
+
+			data[to].~T();
+			new (data + to) T(std::move(data[from]));
+			data[from].~T();
 		}
-		for (int i = size - count; i < size; ++i)
-		{
-			data[i].~T();
-		}
+
 		size -= count;
 	}
 	void Swap(int index, int index2)
