@@ -256,27 +256,26 @@ public:
 	{
 		std::swap(data[index], data[index2]);
 	}
-	void DeletePeriodB(int index, int index2)
-	{
-		if (index >= index2 || index < 0 || index2 > size)
-			return;
+void DeletePeriod(int l, int r)
+{
+    if (l < 0 || r > size || l >= r)
+        return;
 
-		int count = index2 - index;
+    int shift = r - l;
 
-		for (int i = 0; i < count; ++i)
-		{
-			int from = size - 1 - i;   // берём с конца
-			int to = index + i;        // вставляем в диапазон
+    
+    for (int i = l; i < r; i++)
+        data[i].~T();
 
-			if (to >= from) break;     // защита от пересечения
+    
+    for (int i = r; i < size; i++)
+    {
+        new(data + i - shift) T(std::move(data[i]));
+        data[i].~T();
+    }
 
-			data[to].~T();
-			new (data + to) T(std::move(data[from]));
-			data[from].~T();
-		}
-
-		size -= count;
-	}
+    size -= shift;
+}
 	void insert(size_t index, const T& value)
 	{
 		if (index > size) return;
