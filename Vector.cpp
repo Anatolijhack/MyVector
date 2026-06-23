@@ -1,155 +1,454 @@
 #include <iostream>
-#include <algorithm>
-template <typename T>
+template <typename V>
 class MyVector
 {
 private:
-	T* data = nullptr;
-	int size = 0;
-	int capacity = 0;
-	void resize(size_t cap)
+	V* data;
+	int size;
+	int capacity;
+	void reserve(int new_capacity)
 	{
-		//обьект T  = приобразование к T(оператор выделения памяти(размер обьекта T + cap)
-		T* new_data = static_cast<T*>(operator new(sizeof(T) * cap));
-		for (size_t i = 0; i < size; i++)
+		if (new_capacity < capacity)
 		{
-			new(new_data + i) T(std::move(data[i]));
-			data[i].~T();
-		}
-		operator delete(data);
-		data = new_data;
-		capacity = cap;
-	}
-	void reserve(size_t new_cap)
-	{
-		if (new_cap <= capacity)
 			return;
+		}
+		V* new_data = (V*)(operator new(sizeof(V) * new_capacity));
 
-		// выделяем сырую память
-		T* new_data = static_cast<T*>(operator new(sizeof(T) * new_cap));
-
-		// переносим элементы (move)
-		for (size_t i = 0; i < size; i++)
+		int i = 0;
+		try
 		{
-			new (new_data + i) T(std::move(data[i]));
-			data[i].~T();
+			for (; i < size; i++)
+			{
+				new(new_data + i) V(std::move(data[i]));
+			}
+		}
+		catch (...)
+		{
+			// откат
+			for (int j = 0; j < i; j++)
+				new_data[j].~V();
+
+			operator delete(new_data);
+			throw;
 		}
 
-		// освобождаем старую память
-		operator delete(data);
-
-		data = new_data;
-		capacity = new_cap;
-	}
-public:
-	MyVector()
-	{
-		this->size = 0;
-		this->capacity = 0;
-		this->data = nullptr;
-	}
-	~MyVector()
-	{
-		//цикл прохода по вектору
 		for (int i = 0; i < size; i++)
 		{
-			//Ручное удаление T обьекта
-			data[i].~T();
-
+			new(new_data + i) V(std::move(data[i]));
+			data[i].~V();
 		}
-		//Удаление  выделеной памяти
 		operator delete(data);
+
+		data = new_data;
+		capacity = new_capacity;
+	}
+	void resize(int new_size)
+	{
+		if (new_size < size)
+		{
+			for (int i = new_size; i < size; i++)
+			{
+				data[i].~V();
+			}
+		}
+		else if (new_size > size)
+		{
+			if (new_size > capacity)
+			{
+				reserve(capacity * 2);
+			}
+			for (int i = size; i < new_size; i++)
+			{
+				new(data + i) V();
+			}
+		}
+		size = new_size;
+	}
+public:
+	V& operator[](int index)
+	{
+		return data[index];
+	}
+	MyVector()
+	{
+		this->capacitydata = nullptr;
+		this->size = 0;
+		this->capacity = 0;
 	}
 	MyVector(const MyVector& other)
 	{
 		size = other.size;
 		capacity = other.capacity;
 
-		data = static_cast<T*>(operator new(sizeof(T) * capacity));
-
-		for (size_t i = 0; i < size; i++)
+		data = (V*)(operator new(sizeof(V) * capacity);
+		for (int i = 0; i < size; i++)
 		{
-			new (data + i) T(other.data[i]);
+			new(data + i) V(other.data[i]);
 		}
 	}
 	MyVector(MyVector&& other)
 	{
-		data = other.data;
 		size = other.size;
 		capacity = other.capacity;
+		data = other.data;
 
-		other.data = nullptr;
 		other.size = 0;
 		other.capacity = 0;
+		other.data = nullptr;
 	}
+
 	MyVector& operator=(const MyVector& other)
 	{
 		if (this == &other)
-			return *this;
-
-		// уничтожаем старые элементы
-		for (size_t i = 0; i < size; ++i)
-			data[i].~T();
-
-		operator delete(data);
-
-		size = other.size;
-		capacity = other.capacity;
-
-		data = static_cast<T*>(operator new(sizeof(T) * capacity));
-
-		for (size_t i = 0; i < size; ++i)
 		{
-			new (data + i) T(other.data[i]);
+			return *this;
 		}
+		clear();
+		operator delete (data);
 
-		return *this;
+		data = (V*)(operator new(sizeof(V) * capacity);
+		for (int i = 0; i < size; i++)
+		{
+			new(data + i) V(other.data[i]);
+		}
 	}
 	MyVector& operator=(MyVector&& other)
 	{
 		if (this == &other)
+		{
 			return *this;
-
-		// удаляем свои данные
-		for (size_t i = 0; i < size; ++i)
-			data[i].~T();
-
-		operator delete(data);
-
-		// забираем ресурсы у other
-		data = other.data;
+		}
 		size = other.size;
 		capacity = other.capacity;
+		data = other.data;
 
-		// обнуляем other
-		other.data = nullptr;
 		other.size = 0;
 		other.capacity = 0;
+		other.data = nullptr;
 
 		return *this;
 	}
+	void clear()
+	{
+		for (int i = 0; i < size; i++)
+		{
+			data[i].~V();
+		}
+	}
+	void push_back(V value)
+	{
+		if (capacity == size)
+		{
+			if (capacity != 0)
+			{
+				reserve(capacity * 2);
+			}
+			else
+			{
+				reserve(1);
+			}
+		}
+		new(data + size) V(std::move(value));
+		size++;
+	}
+	void push_front(V value)
+	{
+		if (capacity == size)
+		{
+			if (capacity != 0)
+			{
+				reserve(capacity * 2);
+			}
+			else
+			{
+				reserve(1);
+			}
+		}
+		for (int i = size; i > 0; i--)
+		{
+			new(data + i) V(std::move(data[i - 1]));
+			data[i - 1].~V();
+		}
+		size++;
+	}
+	void push_by_index(int index, V value)
+	{
+
+		if (index > size)
+		{
+			return;
+		}
+		if (capacity == size)
+		{
+			if (capacity != 0)
+			{
+				reserve(capacity * 2);
+			}
+			else
+			{
+				reserve(1);
+			}
+		}
+		for (int i = size; i > index; i--)
+		{
+			new(data + i) V(std::move(data[i - 1]));
+			data[i - 1].~V();
+		}
+		size++;
+	}
+	void pop_back()
+	{
+		data[size - 1].~V();
+		size--;
+	}
+	void pop_front()
+	{
+		data[0].~V();
+		for (int i = 0; i < size - 1; i++)
+		{
+			new(data + i) V(std::move(data[i + 1]));
+			data[i].~V();
+		}
+	}
+	void DeletePeriodA(int index, int index2)
+	{
+		int count = index2 - index;
+		for (int i = index2; i < size; i++)
+		{
+			new(data + i - count) V(std::move(data[i]));
+			data[i].~V();
+		}
+		for (int i = size - count; i < size; i++)
+		{
+			data[i].~V();
+		}
+		size -= count;
+	}
+	void DeletePeriodB(int index, int index2)
+	{
+		int count = index2 - index;
+		int tail = size - index2;
+		int moves = std::min(count, tail);
+		for (int i = 0; i < moves; i++)
+		{
+			int to = size - i - 1;
+			int from = index + i;
+
+			data[to].~V();
+			new(data + to) V(std::move(data[from]));
+			data[from].~V();
+		}
+		for (int i = moves; i < count; i++)
+		{
+			data[index + i].~V();
+		}
+		size -= count;
+	}
+	V* find(V value)
+	{
+		for (int i = 0; i < size; i++)
+		{
+			if (data[i] == value)
+			{
+				return &data[i];
+			}
+		}
+		return nullptr;
+	}
+	void insert_period(int index, V* first, V* second)
+	{
+
+		int count = std::distance(first, second);
+
+		if (count + size > capacity)
+		{
+			size_t new_cap = std::max(capacity * 2, size + count);
+			reserve(new_cap);
+		}
+
+		for (int i = size; i > index; i--)
+		{
+			new(data + i + count - 1) V(std::move(data[i - 1]));
+			data[i - 1].~V();
+		}
+		for (int i = 0; i < count; i++)
+		{
+			new(data + i + index) V(first[i]);
+		}
+		size += count;
+	}
+	void shrink_to_fit()
+	{
+		if (size == capacity)
+		{
+			return;
+		}
+		if (size == 0)
+		{
+			operator delete(data);
+			data = nullptr;
+			size = 0;
+			capacity = 0;
+		}
+		V* new_data = (V*)(operator new(sizeof(V) * size));
+		for (int i = 0; i < size; i++)
+		{
+			new(new_data + i) V(std::move(data[i]));
+			data[i].~V();
+		}
+		operator delete(data);
+		capacity = new_data;
+
+	}
+	int operator-(const Iterator& other) const
+	{
+		return data - other.data;
+	}
+	template<typename... Args>
+	void emplace_back(Args&&... args)
+	{
+		if (size == capacity)
+		{
+			reserve(capacity ? capacity * 2 : 1);
+		}
+		new(data + size) V(std::forward<Args>(args)...);
+		size++;
+	}
+	template <typename ...Arg>
+	void emplace_backs(int index, Arg&&... arg)
+	{
+		if (size == capacity)
+		{
+			reserve(capacity * 2);
+		}
+		for (int i = size; i > index; i--)
+		{
+			new(data + i)  V(std::move(data[i - 1]));
+			data[i - 1].~T();
+		}
+		new(data + index) V(std::forward<Arg>(arg)...);
+
+		size++;
+	}
 	class Iterator
 	{
+
 	public:
-		T* ptr;
-		Iterator(T* node)
+		V* ptr;
+		Iterator(V* data)
 		{
-			this->ptr = node;
+			this->ptr = data;
 		}
+		Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
+
 		Iterator& operator++()
 		{
 			ptr++;
 			return *this;
 		}
-		T& operator*()
+		V* operator->() const { return ptr; }
+        
+		Iterator& operator*()
 		{
 			return *ptr;
 		}
-		bool operator!=(const Iterator& other)
+		Iterator operator+(int n) const
 		{
-			return ptr != other.ptr;
+			return Iterator(ptr + n);
+		}
+		Iterator operator-(int n) const
+		{
+			return Iterator(ptr - n);
+		}
+		Iterator operator--(int) { Iterator tmp = *this; --(*this); return tmp; }
+		int operator-(const Iterator& other) const { return ptr - other.ptr; }
+		Iterator& operator+=(int n) { ptr += n; return *this; }
+		Iterator& operator-=(int n) { ptr -= n; return *this; }
+
+		
+		V& operator[](int n) const { return *(ptr + n); }
+
+		Iterator& operator--()
+		{
+			data--;
+			return *this;
+		}
+		bool operator==(const Iterator& other) const { return ptr == other.ptr; }
+		bool operator!=(const Iterator& other) const { return ptr != other.ptr; }
+
+		bool operator<(const Iterator& other) const { return ptr < other.ptr; }
+		bool operator>(const Iterator& other) const { return ptr > other.ptr; }
+		bool operator<=(const Iterator& other) const { return ptr <= other.ptr; }
+		bool operator>=(const Iterator& other) const { return ptr >= other.ptr; }
+
+		// доступ (нужно для insert/erase)
+		V* get() const { return ptr; }
+	};
+	class ConstIterator
+	{
+	private:
+		V* data;
+	public:
+		ConstIterator(V* data)
+		{
+			this->data = data;
+		}
+		const ConstIterator& operator*() const
+		{
+			return *data;
+		}
+		ConstIterator& operator++()
+		{
+			data++;
+			return *this;
+		}
+		bool operator !=(const ConstIterator& other)
+		{
+			return data != other.data;
 		}
 	};
+	Iterator insert(Iterator it, V& value)
+	{
+		int = it.data - data;
+
+		if (size == capacity)
+			reserve(capacity ? capacity * 2 : 1);
+
+		for (int i = size; i > index; i--)
+		{
+			new (data + i) V(std::move(data[i - 1]));
+			data[i - 1].~V();
+		}
+		new(data + index) V(value);
+		size++;
+
+		return Iterator(data + (index);
+	}
+	Iterator erase(Iterator it)
+	{
+		int index = it.data - data;
+		data[index].~V();
+
+		for (int i = index; i < size; i++)
+		{
+			new(data + i) V(std::move(data[i + 1]));
+		}
+		size--;
+
+		return Iterator(data + index);
+	}
+	Iterator find(V& value)
+	{
+
+		for (int i = 0; i < size; i++)
+		{
+			if (data[i] == value)
+			{
+				return data + i;
+			}
+		}
+		return data + size;
+	}
 	Iterator begin()
 	{
 		return Iterator(data);
@@ -158,28 +457,6 @@ public:
 	{
 		return Iterator(data + size);
 	}
-	class ConstIterator
-	{
-	public:
-		const T* ptr;
-		ConstIterator(T* node)
-		{
-			this->ptr = node;
-		}
-		ConstIterator& operator++()
-		{
-			ptr++;
-			return *this;
-		}
-		const T& operator*() const
-		{
-			return *ptr;
-		}
-		bool operator!=(const ConstIterator& other) const
-		{
-			return ptr != other.ptr;
-		}
-	};
 	ConstIterator begin()
 	{
 		return ConstIterator(data);
@@ -188,265 +465,9 @@ public:
 	{
 		return ConstIterator(data + size);
 	}
-	void push_front(T value)
+	~MyVector()
 	{
-		if (size == capacity)
-		{
-			resize(capacity == 0 ? 1 : capacity * 2);
-		}
-
-		for (int i = size; i > 0; i--)
-		{
-			//cоздаем следующий обьект data присваивая ему значение предыдущего
-			new (data + i) T(std::move(data[i - 1]));
-			//предыдущий удаляем
-			data[i - 1].~T();
-		}
-		//В начало добавляем наше значение
-		new (data) T(std::move(value));
-		//Увеличиваем размер
-		size++;
-	}
-	void pop_front()
-	{
-		if (size == 0) return;
-		//Удаление T обьекта в начале
-		data[0].~T();
-
-		for (int i = 1; i < size; i++)
-		{
-			//создаем обьект в памяти присваиваем ему  текущее значение
-			new (data + i - 1) T(std::move(data[i]));
-			//удаляем текщее значение не указатель
-			data[i].~T();
-		}
-		//cнимаем size
-		size--;
-	}
-	void push_back(T value)
-	{
-		resize(capacity == 0 ? 1 : capacity * 2);
-		//адрес последнего элемента  присваиваем T обьект
-		new(data + size) T(value);
-		size++;
-	}
-	void pop_back()
-	{
-		//Убираем последний єлемент и удаляем T обьект
-		data[size - 1].~T();
-		size--;
-	}
-	void DeletePeriod(int index, int index2)
-	{
-		//cколько єлементов удалить
-		int count = index2 - index;
-		//cдвиг влево
-		for (int i = index2; i < size; ++i)
-		{
-			new(data + i - count) T(std::move(data[i]));
-			data[i].~T();
-		}
-		for (int i = size - count; i < size; ++i)
-		{
-			data[i].~T();
-		}
-		size -= count;
-	}
-	void Swap(int index, int index2)
-	{
-		std::swap(data[index], data[index2]);
-	}
-	void DeletePeriodB(int index, int index2)
-	{
-		if (index >= index2 || index < 0 || index2 > size)
-			return;
-
-		int count = index2 - index;
-
-		for (int i = 0; i < count; ++i)
-		{
-			int from = size - 1 - i;   // берём с конца
-			int to = index + i;        // вставляем в диапазон
-
-			if (to >= from) break;     // защита от пересечения
-
-			data[to].~T();
-			new (data + to) T(std::move(data[from]));
-			data[from].~T();
-		}
-
-		size -= count;
-	}
-	void insert(size_t index, const T& value)
-	{
-		if (index > size) return;
-
-
-		if (size == capacity)
-			resize(capacity == 0 ? 1 : capacity * 2);
-
-		// сдвиг вправо
-		for (size_t i = size; i > index; --i)
-		{
-			new (data + i) T(std::move(data[i - 1]));
-			data[i - 1].~T();
-		}
-
-		new (data + index) T(value);
-		size++;
-	}
-	template <typename InputIt>
-	void insert(size_t pos, InputIt first, InputIt last) {
-		size_t count = std::distance(first, last);
-
-		if (count == 0) return;
-
-		// 1. проверка capacity
-		if (size + count > capacity)
-		{
-			size_t new_cap = std::max(capacity * 2, size + count);
-			resize(new_cap);
-		}
-
-		// 2. двигаем существующие элементы вправо
-		for (size_t i = size; i > pos; --i) {
-			new (data + i + count - 1) T(std::move(data[i - 1]));
-			data[i - 1].~T();
-		}
-
-		// 3. вставляем новые элементы
-		size_t i = pos;
-		for (auto it = first; it != last; ++it, ++i) {
-			new (data + i) T(*it);
-		}
-
-		// 4. обновляем size
-		size += count;
-	}
-	void erase(size_t index)
-	{
-		if (index >= size) return;
-
-		for (size_t i = index; i < size - 1; ++i)
-		{
-			new (data + i) T(std::move(data[i + 1]));
-			data[i + 1].~T();
-		}
-
-		size--;
-	}
-	template<typename ...Args>
-	void emplace_back(Args&&... args)
-	{
-		if (size == capacity)
-			resize(capacity == 0 ? 1 : capacity * 2);
-
-		new(data + size) T(std::forward<Args>(args)...);
-		size++;
-
-	}
-	template<typename ...Args>
-	void emaplace(int index, Args&&... args)
-	{
-		if (size == capacity)
-			resize(capacity == 0 ? 1 : capacity * 2);
-		for (int i = size; i > index; i++)
-		{
-			new(data + i) T(std::move(data[i - 1]));
-			data[i - 1].~T();
-		}
-		new(data + index) T(std::forward<Args>(args)...);
-		size++;
-	}
-	void assign(int count, T value)
-	{
-		if (count > capacity)
-			reserve(count);
-
 		clear();
-		for (int i = 0; i < count; i++)
-		{
-			new(data + i) T(value);
-		}
-		size = count;
-	}
-	void insert(int index, int count, const T& value)
-	{
-
-		// сдвиг вправо
-		for (int i = size - 1; i >= index; --i)
-		{
-			new (data + i + count) T(std::move(data[i]));
-			data[i].~T();
-		}
-
-		// вставка новых элементов
-		for (int i = 0; i < count; ++i)
-		{
-			new (data + index + i) T(value);
-		}
-
-		size += count;
-	}
-	template<typename InputIt>
-	void assign(InputIt first, InputIt last)
-	{
-		int count = std::distance(first, last);
-
-		// если не хватает памяти
-		if (count > capacity)
-			reserve(count);
-
-
-		// уничтожаем старые
-		clear();
-
-		int i = 0;
-		for (auto it = first; it != last; ++it, ++i)
-		{
-			new (data + i) T(*it);
-		}
-
-		size = count;
-	}
-	T& operator[](int index)
-	{
-		return data[index];
-	}
-	const T& operator[](int index)
-	{
-		return data[index];
-	}
-	bool empty() const
-	{
-		return size == 0;
-	}
-	T& at(int i) const
-	{
-		return data[i];
-	}
-	T& front() const
-	{
-		return data[0];
-	}
-	T& back() const
-	{
-		return data[size - 1];
-	}
-	T* Getdata() const
-	{
-		return data;
-	}
-	void clear()
-	{
-		for (int i = 0; i < size; i++)
-		{
-			data[i].~T();
-		}
-		size = 0;
+		operator delete(data);
 	}
 };
-int main()
-{
-
-}
