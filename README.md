@@ -1,143 +1,114 @@
-# MyVector — реализация аналога std::vector на C++
+# MyVector — Custom std::vector Implementation in C++
 
-## 📌 Описание
+## 📌 Overview
 
-`MyVector` — это собственная реализация динамического массива (аналог `std::vector`) с ручным управлением памятью.
+`MyVector` is a custom implementation of a dynamic array similar to `std::vector`, written from scratch to understand how STL containers work internally.
 
-Проект демонстрирует глубокое понимание:
-
-* работы с памятью (operator new / delete)
-* placement new
-* move semantics
-* RAII
-* шаблонов (templates)
+The project focuses on **manual memory management**, **object lifetime control**, and **iterator design**.
 
 ---
 
-## 🚀 Возможности
+## ⚙️ Features
 
-### 🔹 Базовые операции
+### Memory Management
 
-* `push_back`, `pop_back`
-* `push_front`, `pop_front`
+* Raw memory allocation using `operator new`
+* Object construction via placement new
+* Manual destruction using `~T()`
+
+### Core Functionality
+
+* `push_back`, `push_front`
 * `insert`, `erase`
-* `clear`, `empty`
+* `insert_period` (range insert)
+* `pop_back`, `pop_front`
+* `resize`, `reserve`
+* `shrink_to_fit`
 
-### 🔹 Работа с памятью
+### Modern C++ Features
 
-* `reserve` — управление capacity
-* автоматическое расширение (capacity * 2)
-* перемещение элементов (move вместо copy)
+* Move semantics (`std::move`)
+* Perfect forwarding (`emplace_back`)
+* Rule of 5:
 
-### 🔹 Доступ к элементам
+  * Copy constructor
+  * Move constructor
+  * Copy assignment
+  * Move assignment
+  * Destructor
 
+---
+
+## 🔁 Iterators
+
+Custom iterator implementation with **random access support**:
+
+* `operator++`, `operator--`
+* `operator+`, `operator-`
 * `operator[]`
-* `at`
-* `front`, `back`
+* iterator difference
+* comparison operators (`<`, `>`, etc.)
 
-### 🔹 Итераторы
-
-* `Iterator`
-* `ConstIterator`
-* поддержка range-based for
-
-### 🔹 Расширенные операции
-
-* `emplace_back`
-* `emplace`
-* `assign`
-* вставка диапазона (`insert(first, last)`)
+👉 Behavior is similar to raw pointers and `std::vector::iterator`
 
 ---
 
-## 🧠 Что реализовано под капотом
+## 💡 Key Concepts Learned
 
-* Ручное выделение памяти:
-
-  ```cpp
-  operator new(sizeof(T) * capacity);
-  ```
-
-* Placement new:
-
-  ```cpp
-  new (data + i) T(...)
-  ```
-
-* Явный вызов деструкторов:
-
-  ```cpp
-  data[i].~T();
-  ```
-
-* Move semantics:
-
-  ```cpp
-  std::move(data[i])
-  ```
+* Difference between **memory allocation** and **object construction**
+* How **move semantics** improve performance
+* Internal mechanics of STL containers
+* Importance of **exception safety**
+* Why iterators are just abstractions over pointers
 
 ---
 
-## ⚠️ Особенности реализации
+## ⚠️ Limitations
 
-* Нет allocator (как в std::vector)
-* Нет полной exception safety (strong guarantee)
-* Нет shrink_to_fit
-* Нет bounds checking в operator[]
-
----
-
-## 📈 Сложность операций
-
-| Операция          | Сложность            |
-| ----------------- | -------------------- |
-| push_back         | O(1) амортизированно |
-| insert            | O(n)                 |
-| erase             | O(n)                 |
-| reserve           | O(n)                 |
-| доступ по индексу | O(1)                 |
+* No allocator support (unlike `std::vector`)
+* Exception safety is not fully guaranteed in all operations
+* No SFINAE / advanced template constraints
+* Iterator invalidation rules are not strictly enforced
+* No optimizations for trivially relocatable types
 
 ---
 
-## 💡 Пример использования
+## 🚀 Future Improvements
+
+* Add allocator support (`std::allocator`)
+* Implement strong exception guarantee everywhere
+* Improve iterator compliance with STL
+* Add const-correct API
+* Optimize memory operations (`std::uninitialized_move`)
+
+---
+
+## 🧪 Example Usage
 
 ```cpp
-MyVector<int> vec;
+MyVector<int> v;
 
-vec.push_back(10);
-vec.push_back(20);
-vec.push_front(5);
+v.push_back(1);
+v.push_back(2);
+v.push_back(3);
 
-for (auto& v : vec)
-{
-    std::cout << v << " ";
-}
+auto it = v.begin();
+it = it + 1;
+
+v.insert(it, 99);
+
+for (auto x : v)
+    std::cout << x << " ";
 ```
 
 ---
 
-## 🧪 Цель проекта
+## 🏁 Conclusion
 
-Проект создан для:
+This project demonstrates how a vector-like container works internally:
 
-* углубления понимания STL
-* подготовки к техническим собеседованиям
-* демонстрации навыков работы с low-level C++
+```
+vector = raw memory + object lifetime management + element shifting
+```
 
----
-
-## 🔥 Возможные улучшения
-
-* Exception safety (strong guarantee)
-* Поддержка allocator
-* shrink_to_fit
-* reverse_iterator
-* small buffer optimization (SBO)
-
----
-
-## 👨‍💻 Автор
-
-Разработано как учебный проект для изучения внутренних механизмов STL.
-
----
+Understanding this removes the "magic" behind STL and gives deeper control over C++ performance and behavior.
